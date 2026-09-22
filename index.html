@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fact Drawer — a field guide to strange true things</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0f172a;
+    --bg-raised: #131f38;
+    --surface: #161f36;
+    --surface-2: #1c2846;
+    --border: #2a3757;
+    --border-soft: #212c4a;
+    --text: #f1f5f9;
+    --text-muted: #93a1bd;
+    --text-faint: #64749a;
+    --accent: #d8ac52;
+    --accent-soft: #3a301c;
+    --accent-ink: #201705;
+    --danger: #e08a7d;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --cat-science: #5fb3a3;
+    --cat-history: #bd7f49;
+    --cat-pop: #a084dd;
+    --cat-media: #d97aa3;
+    --cat-general: #d8ac52;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  html { scroll-padding-top: var(--safe-top); }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .serif { font-family: 'Fraunces', Georgia, serif; }
+
+  button { font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+
+  a { color: inherit; }
+
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ---------- App shell ---------- */
+  #app {
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: calc(18px + var(--safe-top)) 20px 14px;
+    margin-top: calc(-1 * var(--safe-top));
+    background: linear-gradient(180deg, var(--bg) 78%, transparent);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .wordmark {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .wordmark .mark {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    line-height: 1;
+  }
+  .wordmark .mark em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .wordmark .tagline {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    letter-spacing: 0.3px;
+  }
+
+  .drawer-count {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  main {
+    flex: 1;
+    padding: 0 20px calc(96px + var(--safe-bottom));
+  }
+
+  .view { display: none; animation: viewIn 260ms ease both; }
+  .view.active { display: block; }
+  @keyframes viewIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Filter rail ---------- */
+  .filter-rail {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 2px 14px;
+    margin: 0 -2px;
+    scrollbar-width: none;
+  }
+  .filter-rail::-webkit-scrollbar { display: none; }
+
+  .chip {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+    white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--text-faint); }
+  .chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+
+  /* ---------- Feed ---------- */
+  .feed {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .fact-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    padding: 16px 16px 14px;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset, 0 10px 24px -18px rgba(0,0,0,0.6);
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    width: 100%;
+    color: inherit;
+  }
+  .fact-card:hover { border-color: var(--border); transform: translateY(-1px); }
+  .fact-card:active { transform: translateY(0px) scale(0.995); }
+
+  .fact-card .row-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .accession {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--text-faint);
+    padding-top: 2px;
+  }
+
+  .badge {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: #0d0d0d;
+    white-space: nowrap;
+  }
+
+  .fact-card h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.32;
+  }
+
+  .fact-card p.preview {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .fact-card .row-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  .flag-note {
+    color: var(--danger);
+    font-weight: 500;
+  }
+
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+
+  .icon-btn {
+    width: 26px; height: 26px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--text-faint); }
+  .icon-btn.active { color: var(--accent); border-color: var(--accent); }
+
+  .menu-wrap { position: relative; }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 156px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 16px 32px -14px rgba(0,0,0,0.65);
+    z-index: 5;
+  }
+  .dropdown-menu button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .dropdown-menu button:hover { background: var(--surface); }
+  .dropdown-menu button.danger { color: var(--danger); }
+  .dropdown-menu button svg { flex: 0 0 auto; opacity: 0.85; }
+
+  .vote-row { display: flex; gap: 6px; }
+  .vote-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+  .vote-btn:hover { border-color: var(--text-faint); }
+  .vote-btn.lg { padding: 9px 14px; font-size: 13.5px; border-radius: 12px; }
+  .vote-btn.active.like { color: #7fd8b0; border-color: rgba(127,216,176,0.4); background: rgba(127,216,176,0.08); }
+  .vote-btn.active.dislike { color: var(--danger); border-color: rgba(224,138,125,0.4); background: rgba(224,138,125,0.08); }
+
+  .sheet-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+  .sheet-actions .vote-btn.lg { flex: 1; justify-content: center; }
+  .save-btn.lg.active { color: var(--accent); border-color: rgba(216,172,82,0.4); background: var(--accent-soft); }
+
+  .status-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--danger);
+    border: 1px solid rgba(224,138,125,0.4);
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .rec-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    border: 1px solid rgba(216,172,82,0.4);
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .source-tag {
+    max-width: 56%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .source-tag:hover { text-decoration: underline; }
+
+  .vote-btn.active.heart { color: #f16a8c; border-color: rgba(241,106,140,0.4); background: rgba(241,106,140,0.08); }
+
+  .ad-card {
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .ad-row-top { display: flex; margin-bottom: 10px; }
+  .ad-tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-faint);
+    background: var(--surface-2);
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .ad-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 5px;
+    color: var(--text);
+  }
+  .ad-blurb {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+  .ad-row-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+  .ad-brand { color: var(--text-faint); }
+  .ad-remove-btn {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 2px;
+  }
+  .ad-remove-btn:hover { text-decoration: underline; }
+
+  .plan-card {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    padding: 20px 18px;
+    margin-bottom: 18px;
+  }
+  .plan-card .plan-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .plan-card .plan-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+  }
+  .plan-card .plan-name { font-size: 16.5px; font-weight: 600; margin: 0; }
+  .plan-card .plan-status { font-size: 12px; color: var(--text-faint); margin: 1px 0 0; }
+  .plan-card p.plan-desc { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin: 0 0 16px; }
+  .plan-card .plan-fine { font-size: 11.5px; color: var(--text-faint); margin: 10px 0 0; line-height: 1.4; }
+
+  .settings-group {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 15px 16px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row h4 { margin: 0 0 3px; font-size: 14px; font-weight: 600; }
+  .settings-row p { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
+
+  .empty-state {
+    text-align: center;
+    padding: 56px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .serif {
+    font-size: 19px;
+    font-style: italic;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .empty-state p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+
+  /* ---------- Section headings ---------- */
+  .section-head {
+    margin: 4px 0 16px;
+  }
+  .section-head h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .section-head p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ---------- Form ---------- */
+  .field {
+    margin-bottom: 16px;
+  }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .field .hint {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  .input, textarea.input, select.input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 12px 13px;
+    font-size: 15px;
+    line-height: 1.4;
+    transition: border-color 150ms ease, background 150ms ease;
+  }
+  .input::placeholder { color: var(--text-faint); }
+  .input:focus { border-color: var(--accent); background: var(--surface-2); }
+
+  textarea.input { resize: vertical; min-height: 110px; }
+
+  select.input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(1.1em), calc(100% - 15px) calc(1.1em);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 34px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    border-radius: 12px;
+    padding: 13px 18px;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 120ms ease, opacity 120ms ease, background 150ms ease;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn[hidden] { display: none; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); width: 100%; }
+  .btn-primary:hover { background: #e2b862; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--text-faint); }
+  .btn-danger-outline {
+    background: transparent;
+    border: 1px solid rgba(224,138,125,0.4);
+    color: var(--danger);
+  }
+  .btn-danger-outline:hover { background: rgba(224,138,125,0.08); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 8px 10px;
+  }
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 9px 14px; font-size: 13px; border-radius: 10px; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  .btn-row .btn { flex: 1; }
+
+  /* ---------- Admin ---------- */
+  .gate-card {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    padding: 22px 18px;
+    text-align: center;
+    margin-top: 20px;
+  }
+  .gate-card .icon {
+    width: 44px; height: 44px;
+    margin: 0 auto 14px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .gate-card h2 { font-size: 19px; margin: 0 0 6px; }
+  .gate-card p { font-size: 13.5px; color: var(--text-muted); margin: 0 0 18px; line-height: 1.5; }
+  .gate-card .field { text-align: left; }
+
+  .admin-item {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 14px 15px;
+    margin-bottom: 12px;
+  }
+  .admin-item .row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .admin-item h4 { margin: 0; font-size: 15.5px; font-weight: 600; }
+  .admin-item p { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0 0 10px; }
+  .report-flag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--danger);
+    background: rgba(224,138,125,0.12);
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Tab bar ---------- */
+  .tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: center;
+    padding-bottom: var(--safe-bottom);
+    background: linear-gradient(0deg, var(--bg) 60%, transparent);
+    pointer-events: none;
+  }
+  .tabbar-inner {
+    pointer-events: auto;
+    width: calc(100% - 32px);
+    max-width: 528px;
+    margin-bottom: 14px;
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 6px;
+    box-shadow: 0 14px 30px -14px rgba(0,0,0,0.65);
+  }
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    border-radius: 13px;
+    padding: 9px 4px 8px;
+    color: var(--text-faint);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+  }
+  .tab-btn svg { width: 19px; height: 19px; }
+  .tab-btn span { font-size: 10.5px; font-weight: 600; }
+  .tab-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* ---------- Sheet (detail view) ---------- */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(6,10,20,0.6);
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+  .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 41;
+    max-width: 560px;
+    margin: 0 auto;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 22px 22px 0 0;
+    padding: 10px 20px calc(26px + var(--safe-bottom));
+    max-height: 82vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 280ms cubic-bezier(.32,.72,0,1);
+    box-shadow: 0 -20px 50px -20px rgba(0,0,0,0.7);
+  }
+  .sheet.open { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    margin: 6px auto 14px;
+  }
+
+  .sheet-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .sheet-head h2 { font-size: 21px; margin: 0; line-height: 1.3; }
+  .sheet-close {
+    flex: 0 0 auto;
+    width: 30px; height: 30px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+  }
+
+  .sheet-explanation {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text);
+    margin: 0 0 18px;
+  }
+
+  .sheet-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 12.5px;
+    color: var(--text-faint);
+    margin-bottom: 18px;
+  }
+
+  /* ---------- Toasts ---------- */
+  #toastHost {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(100px + var(--safe-bottom));
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+    padding: 0 20px;
+  }
+  .toast {
+    background: #f1f5f9;
+    color: #0f172a;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 11px 18px;
+    border-radius: 999px;
+    box-shadow: 0 14px 28px -12px rgba(0,0,0,0.5);
+    animation: toastIn 220ms ease, toastOut 220ms ease 2.4s forwards;
+    max-width: 100%;
+    text-align: center;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(6px); } }
+
+  .fullscreen-ad {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(6,10,20,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    padding-top: calc(24px + var(--safe-top));
+    padding-bottom: calc(24px + var(--safe-bottom));
+  }
+  .fullscreen-ad[hidden] { display: none; }
+  .fs-ad-inner {
+    max-width: 360px;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 22px;
+    text-align: center;
+  }
+  .fs-ad-tag { font-size: 11px; color: var(--text-faint); margin-bottom: 14px; }
+  .fs-ad-visual {
+    width: 100%; height: 150px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent-soft), var(--surface-2));
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+    font-size: 34px;
+    margin-bottom: 16px;
+  }
+  .fs-ad-inner h3 { font-size: 18px; margin: 0 0 8px; }
+  .fs-ad-inner p { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin: 0 0 18px; }
+  .fs-ad-progress { height: 5px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-bottom: 14px; }
+  .fs-ad-progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 1s linear; }
+  .fs-ad-footer { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--text-faint); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <div class="wordmark">
+      <div class="mark">Fact <em>Drawer</em></div>
+      <div class="tagline">a field guide to strange true things</div>
+    </div>
+    <div class="drawer-count" id="drawerCount"></div>
+  </header>
+
+  <main>
+
+    <!-- DISCOVER -->
+    <section class="view active" id="view-discover">
+      <div class="filter-rail" id="filterRail"></div>
+      <div class="feed" id="feedList"></div>
+    </section>
+
+    <!-- ADD FACT -->
+    <section class="view" id="view-add">
+      <div class="section-head">
+        <h2>File a new specimen</h2>
+        <p>Found something true and strange? Add it to the drawer — it publishes to the feed right away.</p>
+      </div>
+      <form id="addForm" novalidate>
+        <div class="field">
+          <label for="f-title">Fact title</label>
+          <input class="input" id="f-title" name="factTitle" type="text" placeholder="A short, punchy headline" maxlength="90" required>
+        </div>
+        <div class="field">
+          <label for="f-explanation">Fact explanation</label>
+          <textarea class="input" id="f-explanation" name="factExplanation" placeholder="The full story — what's true here, and why it's worth knowing." required></textarea>
+        </div>
+        <div class="field">
+          <label for="f-category">Category</label>
+          <select class="input" id="f-category" name="category" required>
+            <option value="" disabled selected>Choose a category</option>
+            <option>Science</option>
+            <option>History</option>
+            <option>Pop Culture</option>
+            <option>Media &amp; Entertainment</option>
+            <option>General Trivia</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-source">Source link</label>
+          <input class="input" id="f-source" name="factSource" type="url" placeholder="https://example.com/article" required>
+          <div class="hint">Shown on the card as a clickable [source] link instead of who submitted it.</div>
+        </div>
+        <div class="field">
+          <label for="f-email">Author email <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+          <input class="input" id="f-email" name="authorEmail" type="email" placeholder="you@example.com">
+          <div class="hint">Kept private for moderation contact only — never shown on the card or to other readers.</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Publish to the drawer</button>
+      </form>
+    </section>
+
+    <!-- MY FACTS -->
+    <section class="view" id="view-mine">
+      <div class="section-head">
+        <h2>My Facts</h2>
+        <p>What you've filed, and what you've liked, on this device.</p>
+      </div>
+      <div class="filter-rail" id="mineChips"></div>
+      <div class="feed" id="mineList"></div>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="view" id="view-admin">
+      <button class="btn-ghost" id="adminBackBtn" type="button" style="padding-left:0;margin-bottom:6px;">&larr; Settings</button>
+      <div id="adminGate">
+        <div class="gate-card">
+          <div class="icon">&#128273;</div>
+          <h2>Curator access</h2>
+          <p>Enter the curator password to review facts the community has flagged.</p>
+          <div class="field">
+            <label for="admin-password">Curator password</label>
+            <input class="input" id="admin-password" type="password" placeholder="Enter password" autocomplete="off">
+            <div class="hint">Demo password: <strong>curator2026</strong></div>
+          </div>
+          <button class="btn btn-primary" id="adminEnterBtn" type="button">Enter the review room</button>
+        </div>
+      </div>
+      <div id="adminPanel" hidden>
+        <div class="section-head">
+          <h2>Under review</h2>
+          <p>These were pulled from the public feed after five or more reports. Approve to restore them, or delete for good.</p>
+        </div>
+        <div id="adminList"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="section-head">
+        <h2>Settings</h2>
+        <p>Manage how the drawer looks and feels on this device.</p>
+      </div>
+      <div class="plan-card" id="planCard"></div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
+            <h4>Admin console</h4>
+            <p>Review and moderate facts flagged by the community. Password-protected.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="openAdminBtn" type="button">Open</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <h4>Clear saved facts</h4>
+            <p>Remove every fact you've bookmarked on this device.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="clearSavedBtn" type="button">Clear</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <h4>Reset votes</h4>
+            <p>Clear your likes and dislikes on this device.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="clearVotesBtn" type="button">Reset</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab-btn active" data-tab="discover" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+        <span>Discover</span>
+      </button>
+      <button class="tab-btn" data-tab="add" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        <span>Add Fact</span>
+      </button>
+      <button class="tab-btn" data-tab="mine" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M4.5 20c1-3.6 4-5.5 7.5-5.5s6.5 1.9 7.5 5.5"></path></svg>
+        <span>My Facts</span>
+      </button>
+      <button class="tab-btn" data-tab="settings" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+        <span>Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="sheet" id="detailSheet" aria-hidden="true">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <h2 id="sheetTitle"></h2>
+      <button class="sheet-close" id="sheetClose" aria-label="Close" type="button">&times;</button>
+    </div>
+    <div id="sheetBadge" style="margin-bottom:14px;"></div>
+    <p class="sheet-explanation" id="sheetExplanation"></p>
+    <div class="sheet-meta">
+      <span id="sheetAuthor"></span>
+      <span id="sheetAccession"></span>
+    </div>
+    <div class="sheet-actions" id="sheetActions"></div>
+    <button class="btn btn-danger-outline btn-block" id="reportBtn" type="button">Report fact</button>
+  </div>
+
+  <div id="toastHost"></div>
+
+  <div class="fullscreen-ad" id="fullscreenAd" hidden>
+    <div class="fs-ad-inner">
+      <div class="fs-ad-tag" id="fsAdTag">Advertisement</div>
+      <div class="fs-ad-visual" id="fsAdVisual">&#9654;</div>
+      <h3 id="fsAdTitle"></h3>
+      <p id="fsAdBlurb"></p>
+      <div class="fs-ad-progress"><div class="fs-ad-progress-bar" id="fsAdProgressBar"></div></div>
+      <div class="fs-ad-footer">
+        <span id="fsAdCountdown"></span>
+        <button class="btn btn-outline btn-sm" id="fsAdCloseBtn" type="button" hidden>Close</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     CONFIG
+  ============================================================ */
+  const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL"; // Replace with your deployed Apps Script Web App URL
+  const ADMIN_PASSWORD = "curator2026";
+  const REPORT_THRESHOLD = 5;
+
+  const CATEGORIES = ["Science", "History", "Pop Culture", "Media & Entertainment", "General Trivia"];
+  const CATEGORY_META = {
+    "Science":                { css: "var(--cat-science)" },
+    "History":                { css: "var(--cat-history)" },
+    "Pop Culture":            { css: "var(--cat-pop)" },
+    "Media & Entertainment":  { css: "var(--cat-media)" },
+    "General Trivia":         { css: "var(--cat-general)" }
+  };
+
+  const ICONS = {
+    kebab: '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4a1 1 0 011-1h11l-2.5 4L19 11H6"/></svg>',
+    bookmark: function (active) {
+      return active
+        ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z"/></svg>';
+    },
+    thumb: function (dir, active) {
+      const flip = dir === "down" ? ' style="transform:scaleY(-1)"' : "";
+      return active
+        ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"' + flip + '><path d="M2 21h3V10H2v11zm19-10c0-.83-.67-1.5-1.5-1.5h-5.67l.86-4.15.03-.32c0-.41-.17-.79-.44-1.06L13.17 3 7.59 8.59C7.22 8.95 7 9.45 7 10v9c0 .83.67 1.5 1.5 1.5h7c.63 0 1.17-.38 1.41-.93l3.02-7.05c.05-.14.07-.29.07-.45V11z"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"' + flip + '><path d="M2 21h3V10H2v11zm19-10c0-.83-.67-1.5-1.5-1.5h-5.67l.86-4.15.03-.32c0-.41-.17-.79-.44-1.06L13.17 3 7.59 8.59C7.22 8.95 7 9.45 7 10v9c0 .83.67 1.5 1.5 1.5h7c.63 0 1.17-.38 1.41-.93l3.02-7.05c.05-.14.07-.29.07-.45V11z"/></svg>';
+    },
+    sparkle: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"></path></svg>',
+    check: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>',
+    heart: function (active) {
+      return active
+        ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 21s-6.7-4.35-9.33-8.2C1.02 10.4 1.6 7.2 4.2 5.6c2.2-1.35 4.9-.75 6.3 1.1L12 8.3l1.5-1.6c1.4-1.85 4.1-2.45 6.3-1.1 2.6 1.6 3.18 4.8 1.53 7.2C18.7 16.65 12 21 12 21z"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 21s-6.7-4.35-9.33-8.2C1.02 10.4 1.6 7.2 4.2 5.6c2.2-1.35 4.9-.75 6.3 1.1L12 8.3l1.5-1.6c1.4-1.85 4.1-2.45 6.3-1.1 2.6 1.6 3.18 4.8 1.53 7.2C18.7 16.65 12 21 12 21z"/></svg>';
+    }
+  };
+
+  const AD_POOL = [
+    { title: "Keep a field notebook of your own", blurb: "Pocket-sized notebooks built for jotting down the odd, the curious, and the too-strange-to-forget.", brand: "Fieldstead Co." },
+    { title: "A reading lamp for late-night rabbit holes", blurb: "Warm, adjustable light that's easy on the eyes when one fact turns into twenty.", brand: "Amber & Co." },
+    { title: "Coffee for curious minds", blurb: "Small-batch beans roasted for people who read the whole label.", brand: "Curio Coffee" }
+  ];
+
+  /* ============================================================
+     SEED DATA (used until a real SCRIPT_URL is connected)
+  ============================================================ */
+  let facts = [
+    { factId: "f001", factTitle: "Octopuses run on three hearts", factExplanation: "Two hearts pump blood to the gills, and a third pumps it to the rest of the body. That third heart actually stops beating when the octopus swims, which is part of why they prefer crawling — swimming exhausts them.", category: "Science", authorEmail: "marine@demo.com", source: "https://ocean.si.edu", status: "Approved", reportCount: 1 },
+    { factId: "f002", factTitle: "The Great Fire of London killed almost no one", factExplanation: "Despite destroying over 13,000 houses and most of the medieval city in 1666, only a handful of deaths were officially recorded. Historians suspect the real toll was higher and undercounted, since the poor weren't always registered — but it was nowhere near the scale of the destruction.", category: "History", authorEmail: "", source: "https://www.museumoflondon.org.uk", status: "Approved", reportCount: 0 },
+    { factId: "f003", factTitle: "The peace symbol was drawn for a 1958 march", factExplanation: "Designer Gerald Holtom created it for the UK's first Aldermaston anti-nuclear march by combining the semaphore signals for the letters N and D — Nuclear Disarmament — inside a circle.", category: "Pop Culture", authorEmail: "designhist@demo.com", source: "https://www.iwm.org.uk", status: "Approved", reportCount: 2 },
+    { factId: "f004", factTitle: "One scream has echoed through cinema for 70 years", factExplanation: "The 'Wilhelm Scream,' recorded for a 1951 Western, has been reused as a stock sound effect in hundreds of films since — including every major Star Wars and Indiana Jones movie — usually as a small in-joke among sound editors.", category: "Media & Entertainment", authorEmail: "", source: "https://www.bbc.co.uk/radio4", status: "Approved", reportCount: 0 },
+    { factId: "f005", factTitle: "A group of flamingos is a flamboyance", factExplanation: "Collective nouns for animals get delightfully specific: a flamboyance of flamingos, a murder of crows, a parliament of owls, and a shrewdness of apes are all official terms with roots in old hunting and naturalist traditions.", category: "General Trivia", authorEmail: "wordnerd@demo.com", source: "https://www.merriam-webster.com", status: "Approved", reportCount: 0 },
+    { factId: "f006", factTitle: "Bananas are mildly radioactive", factExplanation: "They're rich in potassium, a small fraction of which is the naturally radioactive isotope potassium-40. It's harmless — you'd need to eat roughly 10 million bananas at once to reach a lethal dose — but it's real enough that scientists coined the 'banana equivalent dose' as a casual radiation unit.", category: "Science", authorEmail: "", source: "https://www.nrc.gov", status: "Approved", reportCount: 3 },
+    { factId: "f007", factTitle: "Oxford predates the Aztec Empire", factExplanation: "Teaching at Oxford began around 1096. The Aztec Empire wasn't founded until 1428. By the time the Aztecs built Tenochtitlan, Oxford had already been operating for over 300 years.", category: "History", authorEmail: "timelines@demo.com", source: "https://www.ox.ac.uk", status: "Approved", reportCount: 1 },
+    { factId: "f008", factTitle: "Honey basically never spoils", factExplanation: "Archaeologists have found pots of honey in ancient Egyptian tombs that were still edible thousands of years later. Its low moisture and natural acidity make it inhospitable to the bacteria and microorganisms that cause food to rot.", category: "General Trivia", authorEmail: "", source: "https://www.nationalgeographic.com", status: "Approved", reportCount: 0 },
+    { factId: "f009", factTitle: "Foley snow is mostly cornstarch", factExplanation: "The crunch of footsteps in snow, heard in countless films, is often made by squeezing a leather pouch or bag filled with cornstarch just off-mic. Foley artists have relied on the trick since the earliest days of sound film.", category: "Media & Entertainment", authorEmail: "soundfx@demo.com", source: "https://www.soundonsound.com", status: "Approved", reportCount: 2 },
+    { factId: "f010", factTitle: "Sharks are older than trees", factExplanation: "Sharks first appeared in the fossil record around 400 million years ago. The earliest tree-like plants, Archaeopteris, didn't show up until roughly 385 million years ago — meaning sharks had already been patrolling the oceans for millions of years.", category: "Science", authorEmail: "", source: "https://www.amnh.org", status: "Under Review", reportCount: 6 },
+    { factId: "f011", factTitle: "A single word once meant 'yes' and 'no'", factExplanation: "In Old English legal and rhetorical tradition, some affirmative particles shifted meaning so often across dialects that scholars still debate their exact sense in surviving manuscripts — a reminder that even 'yes' hasn't always been simple.", category: "History", authorEmail: "philology@demo.com", source: "https://www.oed.com", status: "Under Review", reportCount: 5 },
+    { factId: "f012", factTitle: "The 'OK' hand sign is centuries old", factExplanation: "Long before it became an emoji, the circled thumb-and-forefinger gesture appeared in classical rhetoric manuals as a sign of fine judgment, and shows up in paintings and etiquette guides going back hundreds of years.", category: "Pop Culture", authorEmail: "", source: "https://www.smithsonianmag.com", status: "Approved", reportCount: 0 }
+  ];
+
+  let currentTab = "discover";
+  let currentFilter = "All";
+  let activeFactId = null;
+  let isAdmin = false;
+  let savedIds = new Set();
+  let voteMap = {}; // factId -> "like" | "dislike"
+  let mySubmittedIds = new Set();
+  let isSubscribed = false;
+  let tempAdFreeUntil = 0; // timestamp ms, from watching a rewarded ad
+  let adRotationOffset = 0;
+  let activeSeconds = 0;
+
+  try { isAdmin = sessionStorage.getItem("factDrawerAdmin") === "1"; } catch (e) { isAdmin = false; }
+  try {
+    const s = localStorage.getItem("factDrawerSaved");
+    if (s) savedIds = new Set(JSON.parse(s));
+    const v = localStorage.getItem("factDrawerVotes");
+    if (v) voteMap = JSON.parse(v);
+    const m = localStorage.getItem("factDrawerMine");
+    if (m) mySubmittedIds = new Set(JSON.parse(m));
+    isSubscribed = localStorage.getItem("factDrawerSubscribed") === "1";
+    tempAdFreeUntil = parseInt(localStorage.getItem("factDrawerTempAdFreeUntil") || "0", 10) || 0;
+  } catch (e) { /* no-op — falls back to in-memory only */ }
+
+  function isCurrentlyAdFree() {
+    return isSubscribed || (tempAdFreeUntil > 0 && Date.now() < tempAdFreeUntil);
+  }
+
+  function formatCountdown(ms) {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function persistLocal() {
+    try {
+      localStorage.setItem("factDrawerSaved", JSON.stringify(Array.from(savedIds)));
+      localStorage.setItem("factDrawerVotes", JSON.stringify(voteMap));
+      localStorage.setItem("factDrawerMine", JSON.stringify(Array.from(mySubmittedIds)));
+      localStorage.setItem("factDrawerSubscribed", isSubscribed ? "1" : "0");
+      localStorage.setItem("factDrawerTempAdFreeUntil", String(tempAdFreeUntil || 0));
+    } catch (e) { /* no-op */ }
+  }
+
+  facts.forEach(function (f) {
+    if (typeof f.likeCount !== "number") f.likeCount = 0;
+    if (typeof f.dislikeCount !== "number") f.dislikeCount = 0;
+  });
+
+  /* ============================================================
+     SERVER SYNC (graceful no-op until SCRIPT_URL is real)
+  ============================================================ */
+  function backendReady() {
+    return SCRIPT_URL && SCRIPT_URL.indexOf("YOUR_") !== 0;
+  }
+
+  function sendToServer(payload) {
+    if (!backendReady()) return; // demo mode — nothing to send to
+    try {
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(function () { /* fail silently — UI already updated optimistically */ });
+    } catch (e) { /* no-op */ }
+  }
+
+  function syncFromServer() {
+    if (!backendReady()) return;
+    fetch(SCRIPT_URL + "?action=getFacts")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (Array.isArray(data) && data.length) {
+          facts = data;
+          renderAll();
+        }
+      })
+      .catch(function () { /* keep local/demo data */ });
+  }
+
+  /* ============================================================
+     HELPERS
+  ============================================================ */
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function accessionOf(factId) {
+    const idx = facts.findIndex(function (f) { return f.factId === factId; });
+    const n = idx > -1 ? idx + 1 : facts.length + 1;
+    return "No. " + String(n).padStart(3, "0");
+  }
+
+  function categoryBadge(category, size) {
+    const meta = CATEGORY_META[category] || CATEGORY_META["General Trivia"];
+    const pad = size === "sm" ? "3px 9px" : "4px 10px";
+    const fs = size === "sm" ? "10.5px" : "11px";
+    return '<span class="badge" style="background:' + meta.css + ';padding:' + pad + ';font-size:' + fs + '">' + escapeHtml(category) + "</span>";
+  }
+
+  function makeId() {
+    return "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function toast(msg) {
+    const host = document.getElementById("toastHost");
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = msg;
+    host.appendChild(el);
+    setTimeout(function () { el.remove(); }, 2700);
+  }
+
+  function visibleFacts() {
+    return facts.filter(function (f) {
+      return f.status === "Approved" && f.reportCount < REPORT_THRESHOLD;
+    });
+  }
+
+  /* ============================================================
+     RENDER — FILTER RAIL
+  ============================================================ */
+  function renderFilterRail() {
+    const rail = document.getElementById("filterRail");
+    const cats = ["All"].concat(CATEGORIES);
+    rail.innerHTML = cats.map(function (c) {
+      const active = c === currentFilter ? " active" : "";
+      return '<button class="chip' + active + '" data-cat="' + escapeHtml(c) + '" type="button">' + escapeHtml(c) + "</button>";
+    }).join("");
+
+    Array.prototype.forEach.call(rail.querySelectorAll(".chip"), function (btn) {
+      btn.addEventListener("click", function () {
+        currentFilter = btn.getAttribute("data-cat");
+        renderFilterRail();
+        renderFeed();
+      });
+    });
+  }
+
+  /* ============================================================
+     RENDER — FEED
+  ============================================================ */
+  function factCardHtml(f, recommendedCategory) {
+    const saved = savedIds.has(f.factId);
+    const vote = voteMap[f.factId];
+    const statusTag = f.status !== "Approved" ? '<span class="status-tag">' + escapeHtml(f.status) + "</span>" : "";
+    const recTag = recommendedCategory && f.category === recommendedCategory ? '<span class="rec-tag">For you</span>' : "";
+    return (
+      '<div class="fact-card" data-id="' + f.factId + '" tabindex="0" role="button" aria-label="Open fact: ' + escapeHtml(f.factTitle) + '">' +
+        '<div class="row-top">' +
+          '<span class="accession">' + accessionOf(f.factId) + "</span>" +
+          '<div class="card-actions">' +
+            statusTag +
+            recTag +
+            categoryBadge(f.category) +
+            '<div class="menu-wrap">' +
+              '<button class="icon-btn kebab-btn" data-menu-toggle="' + f.factId + '" aria-label="More options" aria-haspopup="true" type="button">' + ICONS.kebab + "</button>" +
+              '<div class="dropdown-menu" data-menu-panel="' + f.factId + '" hidden>' +
+                '<button data-save="' + f.factId + '" type="button">' + ICONS.bookmark(saved) + (saved ? "Unsave" : "Save") + "</button>" +
+                '<button class="danger" data-report="' + f.factId + '" type="button">' + ICONS.flag + "Report</button>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+        "<h3>" + escapeHtml(f.factTitle) + "</h3>" +
+        '<p class="preview">' + escapeHtml(f.factExplanation) + "</p>" +
+        '<div class="row-bottom">' +
+          '<a class="source-tag" href="' + escapeHtml(f.source || "#") + '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(f.source || "") + '">[source]</a>' +
+          '<div class="vote-row">' +
+            '<button class="vote-btn' + (saved ? " active heart" : "") + '" data-save="' + f.factId + '" aria-label="' + (saved ? "Unsave fact" : "Save fact") + '" type="button">' + ICONS.heart(saved) + "</button>" +
+            '<button class="vote-btn' + (vote === "like" ? " active like" : "") + '" data-vote="' + f.factId + '|like" type="button">' + ICONS.thumb("up", vote === "like") + "<span>" + f.likeCount + "</span></button>" +
+            '<button class="vote-btn' + (vote === "dislike" ? " active dislike" : "") + '" data-vote="' + f.factId + '|dislike" type="button">' + ICONS.thumb("down", vote === "dislike") + "<span>" + f.dislikeCount + "</span></button>" +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function bindCardEvents(list) {
+    Array.prototype.forEach.call(list.querySelectorAll(".source-tag"), function (a) {
+      a.addEventListener("click", function (e) { e.stopPropagation(); });
+    });
+
+    Array.prototype.forEach.call(list.querySelectorAll(".fact-card"), function (card) {
+      card.addEventListener("click", function () {
+        openSheet(card.getAttribute("data-id"));
+      });
+      card.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openSheet(card.getAttribute("data-id"));
+        }
+      });
+    });
+
+    Array.prototype.forEach.call(list.querySelectorAll("[data-menu-toggle]"), function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const id = btn.getAttribute("data-menu-toggle");
+        toggleMenu(id);
+      });
+    });
+
+    Array.prototype.forEach.call(list.querySelectorAll("[data-save]"), function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        toggleSave(btn.getAttribute("data-save"));
+      });
+    });
+
+    Array.prototype.forEach.call(list.querySelectorAll("[data-report]"), function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeAllMenus();
+        reportFact(btn.getAttribute("data-report"));
+      });
+    });
+
+    Array.prototype.forEach.call(list.querySelectorAll("[data-vote]"), function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const parts = btn.getAttribute("data-vote").split("|");
+        toggleVote(parts[0], parts[1]);
+      });
+    });
+  }
+
+  function getCategoryAffinity() {
+    const aff = {};
+    Object.keys(voteMap).forEach(function (id) {
+      if (voteMap[id] === "like") {
+        const f = facts.find(function (x) { return x.factId === id; });
+        if (f) aff[f.category] = (aff[f.category] || 0) + 1;
+      }
+    });
+    return aff;
+  }
+
+  function getTopCategory(aff) {
+    let top = null, max = 0;
+    Object.keys(aff).forEach(function (c) { if (aff[c] > max) { max = aff[c]; top = c; } });
+    return top;
+  }
+
+  function renderFeed() {
+    const list = document.getElementById("feedList");
+    let items = visibleFacts();
+    if (currentFilter !== "All") {
+      items = items.filter(function (f) { return f.category === currentFilter; });
+    }
+
+    let recommendedCategory = null;
+    if (currentFilter === "All") {
+      const aff = getCategoryAffinity();
+      const top = getTopCategory(aff);
+      if (top && aff[top] > 0) {
+        recommendedCategory = top;
+        items = items.slice().sort(function (a, b) { return (aff[b.category] || 0) - (aff[a.category] || 0); });
+      }
+    }
+
+    if (!items.length) {
+      list.innerHTML =
+        '<div class="empty-state">' +
+        '<span class="serif">Nothing filed here yet</span>' +
+        "<p>" + (currentFilter === "All" ? "The drawer's empty right now — be the first to add a fact." : "No specimens filed under " + escapeHtml(currentFilter) + " yet. Try another category, or add one yourself.") + "</p>" +
+        "</div>";
+      return;
+    }
+
+    const cardHtml = items.map(function (f) { return factCardHtml(f, recommendedCategory); });
+
+    let html = "";
+    let adCounter = 0;
+    cardHtml.forEach(function (card, i) {
+      html += card;
+      const isEveryFourth = (i + 1) % 4 === 0;
+      const hasMore = i < cardHtml.length - 1;
+      if (!isCurrentlyAdFree() && isEveryFourth && hasMore) {
+        const ad = AD_POOL[(adCounter + adRotationOffset) % AD_POOL.length];
+        adCounter += 1;
+        html +=
+          '<div class="ad-card">' +
+            '<div class="ad-row-top"><span class="ad-tag">Sponsored</span></div>' +
+            '<h4 class="ad-title">' + escapeHtml(ad.title) + "</h4>" +
+            '<p class="ad-blurb">' + escapeHtml(ad.blurb) + "</p>" +
+            '<div class="ad-row-bottom">' +
+              '<span class="ad-brand">' + escapeHtml(ad.brand) + "</span>" +
+              '<button class="ad-remove-btn" data-goto-settings type="button">Remove ads</button>' +
+            "</div>" +
+          "</div>";
+      }
+    });
+
+    list.innerHTML = html;
+
+    Array.prototype.forEach.call(list.querySelectorAll("[data-goto-settings]"), function (btn) {
+      btn.addEventListener("click", function () { switchTab("settings"); });
+    });
+
+    bindCardEvents(list);
+  }
+
+  /* ============================================================
+     MY FACTS (submitted by me / liked by me)
+  ============================================================ */
+  let mineSubView = "submitted";
+
+  function renderMineChips() {
+    const rail = document.getElementById("mineChips");
+    const opts = [["submitted", "Submitted by me"], ["liked", "Liked by me"]];
+    rail.innerHTML = opts.map(function (o) {
+      const active = o[0] === mineSubView ? " active" : "";
+      return '<button class="chip' + active + '" data-mine="' + o[0] + '" type="button">' + o[1] + "</button>";
+    }).join("");
+
+    Array.prototype.forEach.call(rail.querySelectorAll(".chip"), function (btn) {
+      btn.addEventListener("click", function () {
+        mineSubView = btn.getAttribute("data-mine");
+        renderMine();
+      });
+    });
+  }
+
+  function renderMine() {
+    renderMineChips();
+    const list = document.getElementById("mineList");
+    let items;
+
+    if (mineSubView === "submitted") {
+      items = facts.filter(function (f) { return mySubmittedIds.has(f.factId) && f.status !== "Deleted"; });
+    } else {
+      items = facts.filter(function (f) { return voteMap[f.factId] === "like" && f.status === "Approved" && f.reportCount < REPORT_THRESHOLD; });
+    }
+
+    if (!items.length) {
+      const msg = mineSubView === "submitted"
+        ? ["Nothing filed yet", "Facts you add from the Add Fact tab will show up here, along with their like and dislike counts."]
+        : ["Nothing liked yet", "Tap the thumbs-up on a fact in Discover and it'll show up here."];
+      list.innerHTML =
+        '<div class="empty-state"><span class="serif">' + msg[0] + "</span><p>" + msg[1] + "</p></div>";
+      return;
+    }
+
+    list.innerHTML = items.map(factCardHtml).join("");
+    bindCardEvents(list);
+  }
+
+  /* ---------- Card menu ---------- */
+  let openMenuId = null;
+
+  function toggleMenu(id) {
+    openMenuId = openMenuId === id ? null : id;
+    Array.prototype.forEach.call(document.querySelectorAll(".dropdown-menu"), function (panel) {
+      panel.hidden = panel.getAttribute("data-menu-panel") !== openMenuId;
+    });
+  }
+
+  function closeAllMenus() {
+    openMenuId = null;
+    Array.prototype.forEach.call(document.querySelectorAll(".dropdown-menu"), function (panel) { panel.hidden = true; });
+  }
+
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest || !e.target.closest(".menu-wrap")) closeAllMenus();
+  });
+
+  /* ---------- Save ---------- */
+  function toggleSave(factId) {
+    if (savedIds.has(factId)) {
+      savedIds.delete(factId);
+      toast("Removed from saved.");
+    } else {
+      savedIds.add(factId);
+      toast("Saved to your drawer.");
+    }
+    persistLocal();
+    closeAllMenus();
+    renderFeed();
+    if (activeFactId === factId) renderSheetActions(factId);
+  }
+
+  /* ---------- Vote ---------- */
+  function toggleVote(factId, type) {
+    const f = facts.find(function (x) { return x.factId === factId; });
+    if (!f) return;
+    const current = voteMap[factId];
+
+    if (current === type) {
+      if (type === "like") f.likeCount = Math.max(0, f.likeCount - 1);
+      else f.dislikeCount = Math.max(0, f.dislikeCount - 1);
+      delete voteMap[factId];
+    } else {
+      if (current === "like") f.likeCount = Math.max(0, f.likeCount - 1);
+      if (current === "dislike") f.dislikeCount = Math.max(0, f.dislikeCount - 1);
+      if (type === "like") f.likeCount += 1; else f.dislikeCount += 1;
+      voteMap[factId] = type;
+    }
+
+    persistLocal();
+    sendToServer({ action: "voteFact", factId: factId, voteType: type });
+    renderFeed();
+    if (activeFactId === factId) renderSheetActions(factId);
+  }
+
+  /* ---------- Report (shared by card menu + detail sheet) ---------- */
+  function reportFact(factId) {
+    const f = facts.find(function (x) { return x.factId === factId; });
+    if (!f) return;
+
+    f.reportCount += 1;
+    let flagged = false;
+    if (f.reportCount >= REPORT_THRESHOLD && f.status === "Approved") {
+      f.status = "Under Review";
+      flagged = true;
+    }
+
+    sendToServer({ action: "reportFact", factId: f.factId, reason: "Inappropriate" });
+
+    if (activeFactId === factId) closeSheet();
+    renderAll();
+    toast(flagged ? "This fact has been pulled for review." : "Report recorded — thanks for keeping the drawer accurate.");
+  }
+
+  function updateDrawerCount() {
+    document.getElementById("drawerCount").textContent = visibleFacts().length + " filed";
+  }
+
+  function renderAll() {
+    renderFilterRail();
+    renderFeed();
+    renderAdmin();
+    renderSettings();
+    renderMine();
+    updateDrawerCount();
+  }
+
+  /* ============================================================
+     DETAIL SHEET
+  ============================================================ */
+  function openSheet(factId) {
+    const f = facts.find(function (x) { return x.factId === factId; });
+    if (!f) return;
+    activeFactId = factId;
+
+    document.getElementById("sheetTitle").textContent = f.factTitle;
+    document.getElementById("sheetBadge").innerHTML = categoryBadge(f.category);
+    document.getElementById("sheetExplanation").textContent = f.factExplanation;
+    document.getElementById("sheetAuthor").innerHTML = f.source
+      ? '<a class="source-tag" href="' + escapeHtml(f.source) + '" target="_blank" rel="noopener noreferrer">[source]</a>'
+      : "Uncredited";
+    document.getElementById("sheetAccession").textContent = accessionOf(f.factId);
+    renderSheetActions(factId);
+
+    document.getElementById("detailSheet").classList.add("open");
+    document.getElementById("detailSheet").setAttribute("aria-hidden", "false");
+    document.getElementById("sheetBackdrop").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeSheet() {
+    document.getElementById("detailSheet").classList.remove("open");
+    document.getElementById("detailSheet").setAttribute("aria-hidden", "true");
+    document.getElementById("sheetBackdrop").classList.remove("open");
+    document.body.style.overflow = "";
+    activeFactId = null;
+  }
+
+  function renderSheetActions(factId) {
+    const f = facts.find(function (x) { return x.factId === factId; });
+    if (!f) return;
+    const saved = savedIds.has(f.factId);
+    const vote = voteMap[f.factId];
+    const box = document.getElementById("sheetActions");
+
+    box.innerHTML =
+      '<button class="vote-btn lg save-btn' + (saved ? " active" : "") + '" id="sheetSaveBtn" type="button">' + ICONS.bookmark(saved) + (saved ? "Saved" : "Save") + "</button>" +
+      '<button class="vote-btn lg' + (vote === "like" ? " active like" : "") + '" id="sheetLikeBtn" type="button">' + ICONS.thumb("up", vote === "like") + "<span>" + f.likeCount + "</span></button>" +
+      '<button class="vote-btn lg' + (vote === "dislike" ? " active dislike" : "") + '" id="sheetDislikeBtn" type="button">' + ICONS.thumb("down", vote === "dislike") + "<span>" + f.dislikeCount + "</span></button>";
+
+    document.getElementById("sheetSaveBtn").addEventListener("click", function () { toggleSave(f.factId); });
+    document.getElementById("sheetLikeBtn").addEventListener("click", function () { toggleVote(f.factId, "like"); });
+    document.getElementById("sheetDislikeBtn").addEventListener("click", function () { toggleVote(f.factId, "dislike"); });
+  }
+
+  document.getElementById("sheetClose").addEventListener("click", closeSheet);
+  document.getElementById("sheetBackdrop").addEventListener("click", closeSheet);
+
+  document.getElementById("reportBtn").addEventListener("click", function () {
+    if (!activeFactId) return;
+    reportFact(activeFactId);
+  });
+
+  /* ============================================================
+     ADD FACT FORM
+  ============================================================ */
+  document.getElementById("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const form = e.target;
+    const title = form.factTitle.value.trim();
+    const explanation = form.factExplanation.value.trim();
+    const category = form.category.value;
+    const source = form.factSource.value.trim();
+    const email = form.authorEmail.value.trim();
+
+    if (!title || !explanation || !category || !source) {
+      toast("Fill in the title, explanation, category, and source first.");
+      return;
+    }
+    if (!/^https?:\/\/.+/i.test(source)) {
+      toast("The source needs to be a link starting with http:// or https://");
+      return;
+    }
+
+    const newFact = {
+      factId: makeId(),
+      factTitle: title,
+      factExplanation: explanation,
+      category: category,
+      source: source,
+      authorEmail: email,
+      status: "Approved",
+      reportCount: 0,
+      likeCount: 0,
+      dislikeCount: 0
+    };
+
+    facts.unshift(newFact);
+    mySubmittedIds.add(newFact.factId);
+    persistLocal();
+    sendToServer({ action: "addFact", factId: newFact.factId, factTitle: newFact.factTitle, factExplanation: newFact.factExplanation, category: newFact.category, source: newFact.source, authorEmail: newFact.authorEmail, status: newFact.status, reportCount: newFact.reportCount });
+
+    form.reset();
+    currentFilter = "All";
+    renderAll();
+    switchTab("discover");
+    toast("Fact published instantly!");
+  });
+
+  /* ============================================================
+     ADMIN
+  ============================================================ */
+  function renderAdmin() {
+    document.getElementById("adminGate").hidden = isAdmin;
+    document.getElementById("adminPanel").hidden = !isAdmin;
+    if (!isAdmin) return;
+
+    const queue = facts.filter(function (f) { return f.status === "Under Review"; });
+    const list = document.getElementById("adminList");
+
+    if (!queue.length) {
+      list.innerHTML =
+        '<div class="empty-state">' +
+        '<span class="serif">Nothing waiting for review</span>' +
+        "<p>The drawer's clear — flagged facts will show up here.</p>" +
+        "</div>";
+      return;
+    }
+
+    list.innerHTML = queue.map(function (f) {
+      return (
+        '<div class="admin-item">' +
+          '<div class="row-top">' +
+            "<h4>" + escapeHtml(f.factTitle) + "</h4>" +
+            '<span class="report-flag">' + f.reportCount + " reports</span>" +
+          "</div>" +
+          "<p>" + escapeHtml(f.factExplanation) + "</p>" +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+            categoryBadge(f.category, "sm") +
+            '<span style="font-size:12px;color:var(--text-faint);">' + (f.authorEmail ? escapeHtml(f.authorEmail) : "Anonymous") + "</span>" +
+          "</div>" +
+          '<div class="btn-row">' +
+            '<button class="btn btn-outline btn-sm" data-approve="' + f.factId + '" type="button">Approve</button>' +
+            '<button class="btn btn-danger-outline btn-sm" data-delete="' + f.factId + '" type="button">Delete</button>' +
+          "</div>" +
+        "</div>"
+      );
+    }).join("");
+
+    Array.prototype.forEach.call(list.querySelectorAll("[data-approve]"), function (btn) {
+      btn.addEventListener("click", function () {
+        const id = btn.getAttribute("data-approve");
+        const f = facts.find(function (x) { return x.factId === id; });
+        if (!f) return;
+        f.status = "Approved";
+        f.reportCount = 0;
+        sendToServer({ action: "moderateFact", factId: id, decision: "approve" });
+        renderAll();
+        toast("Fact restored to the drawer.");
+      });
+    });
+
+    Array.prototype.forEach.call(list.querySelectorAll("[data-delete]"), function (btn) {
+      btn.addEventListener("click", function () {
+        const id = btn.getAttribute("data-delete");
+        const f = facts.find(function (x) { return x.factId === id; });
+        if (!f) return;
+        f.status = "Deleted";
+        sendToServer({ action: "moderateFact", factId: id, decision: "delete" });
+        renderAll();
+        toast("Fact deleted permanently.");
+      });
+    });
+  }
+
+  document.getElementById("adminEnterBtn").addEventListener("click", function () {
+    const passInput = document.getElementById("admin-password");
+    const pass = passInput.value;
+    if (pass !== ADMIN_PASSWORD) {
+      toast("That password isn't right.");
+      passInput.value = "";
+      return;
+    }
+    isAdmin = true;
+    passInput.value = "";
+    try { sessionStorage.setItem("factDrawerAdmin", "1"); } catch (e) { /* no-op */ }
+    renderAdmin();
+    toast("Welcome to the review room.");
+  });
+
+  document.getElementById("adminBackBtn").addEventListener("click", function () {
+    switchTab("settings");
+  });
+
+  document.getElementById("openAdminBtn").addEventListener("click", function () {
+    switchTab("admin");
+  });
+
+  /* ============================================================
+     SETTINGS
+  ============================================================ */
+  function renderSettings() {
+    const card = document.getElementById("planCard");
+    const now = Date.now();
+
+    if (isSubscribed) {
+      card.innerHTML =
+        '<div class="plan-top">' +
+          '<div class="plan-icon">' + ICONS.check + "</div>" +
+          '<div><p class="plan-name">Ad-free</p><p class="plan-status">Active on this device</p></div>' +
+        "</div>" +
+        '<p class="plan-desc">Thanks for supporting the drawer — your feed won\'t show sponsored cards. Renews at $20/yr.</p>' +
+        '<button class="btn btn-outline btn-block" id="unsubscribeBtn" type="button">Turn ads back on</button>' +
+        '<p class="plan-fine">Demo toggle. Wire this up to a real payments provider (Stripe, RevenueCat, etc.) to charge for it.</p>';
+
+      document.getElementById("unsubscribeBtn").addEventListener("click", function () {
+        isSubscribed = false;
+        persistLocal();
+        renderAll();
+        toast("Ads turned back on for this device.");
+      });
+    } else if (tempAdFreeUntil > now) {
+      card.innerHTML =
+        '<div class="plan-top">' +
+          '<div class="plan-icon">' + ICONS.check + "</div>" +
+          '<div><p class="plan-name">Temporarily ad-free</p><p class="plan-status" id="tempCountdown">' + formatCountdown(tempAdFreeUntil - now) + " left</p></div>" +
+        "</div>" +
+        '<p class="plan-desc">No sponsored cards while your free hour lasts. Subscribe for uninterrupted ad-free reading.</p>' +
+        '<button class="btn btn-primary btn-block" id="subscribeBtn" type="button">Go ad-free — $20/yr</button>' +
+        '<p class="plan-fine">Demo toggle. Wire this up to a real payments provider (Stripe, RevenueCat, etc.) to charge for it.</p>';
+
+      document.getElementById("subscribeBtn").addEventListener("click", function () {
+        isSubscribed = true;
+        tempAdFreeUntil = 0;
+        persistLocal();
+        renderAll();
+        toast("You're ad-free now. Enjoy the quiet drawer.");
+      });
+    } else {
+      card.innerHTML =
+        '<div class="plan-top">' +
+          '<div class="plan-icon">' + ICONS.sparkle + "</div>" +
+          '<div><p class="plan-name">Free plan</p><p class="plan-status">Sponsored cards appear in your feed</p></div>' +
+        "</div>" +
+        '<p class="plan-desc">Go ad-free permanently, or watch a short ad for an hour of quiet.</p>' +
+        '<button class="btn btn-primary btn-block" id="subscribeBtn" type="button">Go ad-free — $20/yr</button>' +
+        '<button class="btn btn-outline btn-block" id="watchAdBtn" type="button" style="margin-top:10px;">Watch a 30s ad — 1 hour ad-free</button>' +
+        '<p class="plan-fine">Demo flow. Wire this up to a real payments provider and ad SDK for production.</p>';
+
+      document.getElementById("subscribeBtn").addEventListener("click", function () {
+        isSubscribed = true;
+        persistLocal();
+        renderAll();
+        toast("You're ad-free now. Enjoy the quiet drawer.");
+      });
+
+      document.getElementById("watchAdBtn").addEventListener("click", function () {
+        showFullscreenAd({
+          duration: 30,
+          mode: "reward",
+          onComplete: function () {
+            tempAdFreeUntil = Date.now() + 60 * 60 * 1000;
+            persistLocal();
+            renderAll();
+            toast("Ads off for the next hour.");
+          }
+        });
+      });
+    }
+  }
+
+  document.getElementById("clearSavedBtn").addEventListener("click", function () {
+    savedIds = new Set();
+    persistLocal();
+    renderFeed();
+    toast("Saved facts cleared.");
+  });
+
+  document.getElementById("clearVotesBtn").addEventListener("click", function () {
+    facts.forEach(function (f) {
+      if (voteMap[f.factId] === "like") f.likeCount = Math.max(0, f.likeCount - 1);
+      if (voteMap[f.factId] === "dislike") f.dislikeCount = Math.max(0, f.dislikeCount - 1);
+    });
+    voteMap = {};
+    persistLocal();
+    renderFeed();
+    toast("Votes reset.");
+  });
+
+  /* ============================================================
+     TABS
+  ============================================================ */
+  function switchTab(tab) {
+    currentTab = tab;
+    Array.prototype.forEach.call(document.querySelectorAll(".view"), function (v) { v.classList.remove("active"); });
+    document.getElementById("view-" + tab).classList.add("active");
+    Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
+    });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), function (btn) {
+    btn.addEventListener("click", function () { switchTab(btn.getAttribute("data-tab")); });
+  });
+
+  /* ============================================================
+     FULLSCREEN AD (rewarded 30s unlock, and periodic interstitial)
+  ============================================================ */
+  function showFullscreenAd(opts) {
+    const overlay = document.getElementById("fullscreenAd");
+    if (!overlay.hidden) return; // one at a time
+
+    const tag = document.getElementById("fsAdTag");
+    const title = document.getElementById("fsAdTitle");
+    const blurb = document.getElementById("fsAdBlurb");
+    const bar = document.getElementById("fsAdProgressBar");
+    const countdown = document.getElementById("fsAdCountdown");
+    const closeBtn = document.getElementById("fsAdCloseBtn");
+
+    const ad = AD_POOL[Math.floor(Math.random() * AD_POOL.length)];
+    tag.textContent = opts.mode === "reward" ? "Advertisement — watch to unlock 1hr ad-free" : "Advertisement";
+    title.textContent = ad.title;
+    blurb.textContent = ad.blurb;
+    bar.style.width = "0%";
+    closeBtn.hidden = true;
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+
+    const total = opts.duration;
+    let remaining = total;
+    countdown.textContent = remaining + "s";
+
+    const timer = setInterval(function () {
+      remaining -= 1;
+      const pct = Math.min(100, ((total - remaining) / total) * 100);
+      bar.style.width = pct + "%";
+      if (remaining > 0) {
+        countdown.textContent = remaining + "s";
+      } else {
+        clearInterval(timer);
+        countdown.textContent = "Done";
+        closeBtn.hidden = false;
+      }
+    }, 1000);
+
+    function finish() {
+      overlay.hidden = true;
+      document.body.style.overflow = "";
+      closeBtn.removeEventListener("click", finish);
+      if (typeof opts.onComplete === "function") opts.onComplete();
+    }
+    closeBtn.addEventListener("click", finish);
+  }
+
+  /* ============================================================
+     TICKERS: active-usage interstitial + temp ad-free countdown
+     + rotating banner ads
+  ============================================================ */
+  setInterval(function () {
+    if (document.visibilityState === "visible") {
+      activeSeconds += 1;
+      if (activeSeconds > 0 && activeSeconds % 600 === 0 && !isCurrentlyAdFree() && document.getElementById("fullscreenAd").hidden) {
+        showFullscreenAd({ duration: 8, mode: "interstitial" });
+      }
+    }
+
+    if (tempAdFreeUntil > 0) {
+      if (Date.now() >= tempAdFreeUntil) {
+        tempAdFreeUntil = 0;
+        persistLocal();
+        renderAll();
+        toast("Your ad-free hour has ended.");
+      } else {
+        const el = document.getElementById("tempCountdown");
+        if (el) el.textContent = formatCountdown(tempAdFreeUntil - Date.now()) + " left";
+      }
+    }
+  }, 1000);
+
+  setInterval(function () {
+    adRotationOffset += 1;
+    renderFeed();
+  }, 120000);
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  renderAll();
+  syncFromServer();
+
+})();
+</script>
+</body>
+</html>
